@@ -26,22 +26,24 @@ security reasons, remember me tokens should be invalidated after being used.
 The `issue` callback supplies a new token that will be stored in the cookie for
 next use.
 
-    passport.use(new RememberMeStrategy(
-      function(token, done) {
-        Token.consume(token, function (err, user) {
-          if (err) { return done(err); }
-          if (!user) { return done(null, false); }
-          return done(null, user);
-        });
-      },
-      function(user, done) {
-        var token = utils.generateToken(64);
-        Token.save(token, { userId: user.id }, function(err) {
-          if (err) { return done(err); }
-          return done(null, token);
-        });
-      }
-    ));
+```javascript
+passport.use(new RememberMeStrategy(
+  function(token, done) {
+    Token.consume(token, function (err, user) {
+      if (err) { return done(err); }
+      if (!user) { return done(null, false); }
+      return done(null, user);
+    });
+  },
+  function(user, done) {
+    var token = utils.generateToken(64);
+    Token.save(token, { userId: user.id }, function(err) {
+      if (err) { return done(err); }
+      return done(null, token);
+    });
+  }
+));
+```
 
 #### Authenticate Requests
 
@@ -50,7 +52,7 @@ authenticate requests.
 
 This is typically used in an application's middleware stack, to log the user
 back in the next time they visit any page on your site.  For example:
-
+```javascript
     app.configure(function() {
       app.use(express.cookieParser());
       app.use(express.bodyParser());
@@ -60,6 +62,7 @@ back in the next time they visit any page on your site.  For example:
       app.use(passport.authenticate('remember-me'));
       app.use(app.router);
     });
+```
     
 Note that `passport.session()` should be mounted *above* `remember-me`
 authentication, so that tokens aren't exchanged for currently active login
@@ -69,23 +72,24 @@ sessions.
 
 If the user enables "remember me" mode, an initial cookie should be set when
 they login.
+```javascript
+app.post('/login', 
+  passport.authenticate('local', { failureRedirect: '/login', failureFlash: true }),
+  function(req, res, next) {
+    // issue a remember me cookie if the option was checked
+    if (!req.body.remember_me) { return next(); }
 
-    app.post('/login', 
-      passport.authenticate('local', { failureRedirect: '/login', failureFlash: true }),
-      function(req, res, next) {
-        // issue a remember me cookie if the option was checked
-        if (!req.body.remember_me) { return next(); }
-    
-        var token = utils.generateToken(64);
-        Token.save(token, { userId: req.user.id }, function(err) {
-          if (err) { return done(err); }
-          res.cookie('remember_me', token, { path: '/', httpOnly: true, maxAge: 604800000 }); // 7 days
-          return next();
-        });
-      },
-      function(req, res) {
-        res.redirect('/');
-      });
+    var token = utils.generateToken(64);
+    Token.save(token, { userId: req.user.id }, function(err) {
+      if (err) { return done(err); }
+      res.cookie('remember_me', token, { path: '/', httpOnly: true, maxAge: 604800000 }); // 7 days
+      return next();
+    });
+  },
+  function(req, res) {
+    res.redirect('/');
+  });
+```
 
 #### Security Considerations
 
